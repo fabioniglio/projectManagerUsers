@@ -6,6 +6,7 @@ class UserController {
 
     this.onSubmit();
     this.onEdit();
+    this.selectAll();
   }
 
   onEdit() {
@@ -30,18 +31,19 @@ class UserController {
 
       let userOld = JSON.parse(tr.dataset.user);
       console.log("User Old: " + tr.dataset.user);
+      console.log("values: " + JSON.stringify(values));
 
       let result = Object.assign({}, userOld, values);
-
+      console.log("Date : " + result._register);
       this.getPhoto(this.formUpdateEl).then(
         content => {
-          //console.log("File : " + values.photo);
           if (!values.photo) {
             result._photo = userOld._photo;
           } else {
             result._photo = content;
           }
-          tr.dataset.user = JSON.stringify(values);
+
+          tr.dataset.user = JSON.stringify(result);
           tr.innerHTML = `<tr>
           <td>
               <img
@@ -63,7 +65,7 @@ class UserController {
               </button>
               <button
               type="button"
-              class="btn btn-danger btn-xs btn-flat"
+              class="btn btn-danger btn-xs btn-flat btn-delete"
               >
               Excluir
               </button>
@@ -104,6 +106,7 @@ class UserController {
         content => {
           values.photo = content;
 
+          this.insert(values);
           this.addLine(values);
 
           this.formEl.reset();
@@ -185,6 +188,35 @@ class UserController {
     );
   }
 
+  getUsersStorage() {
+    let users = [];
+
+    if (localStorage.getItem("user")) {
+      users = JSON.parse(localStorage.getItem("user"));
+    }
+
+    return users;
+  }
+
+  selectAll() {
+    let users = this.getUsersStorage();
+    console.log("entrou " + users);
+    users.forEach(dataUser => {
+      let user = new User();
+
+      user.loadFromJSON(dataUser);
+      this.addLine(user);
+    });
+  }
+
+  insert(data) {
+    let users = this.getUsersStorage();
+    users.push(data);
+
+    //sessionStorage.setItem("user", JSON.stringify(users));
+    localStorage.setItem("user", JSON.stringify(users));
+  }
+
   addLine(dataUser) {
     let tr = document.createElement("tr");
 
@@ -211,7 +243,7 @@ class UserController {
               </button>
               <button
               type="button"
-              class="btn btn-danger btn-xs btn-flat"
+              class="btn btn-danger btn-xs btn-flat btn-delete"
               >
               Excluir
               </button>
@@ -226,6 +258,13 @@ class UserController {
   }
 
   addEventsTr(tr) {
+    tr.querySelector(".btn-delete").addEventListener("click", e => {
+      if (confirm("Do you wish to delete this record?")) {
+        tr.remove();
+        this.updateCount();
+      }
+    });
+
     tr.querySelector(".btn-edit").addEventListener("click", e => {
       let json = JSON.parse(tr.dataset.user);
 
@@ -273,16 +312,17 @@ class UserController {
   updateCount() {
     let numberUsers = 0;
     let numberAdmin = 0;
+    console.log("Inicio " + numberUsers);
+
     [...this.tableEl.children].forEach(tr => {
       numberUsers++;
-
+      console.log(numberUsers);
       let user = JSON.parse(tr.dataset.user);
       if (user._admin) {
         numberAdmin++;
       }
-
-      document.querySelector("#number-users").innerHTML = numberUsers;
-      document.querySelector("#number-users-admin").innerHTML = numberAdmin;
     });
+    document.querySelector("#number-users").innerHTML = numberUsers;
+    document.querySelector("#number-users-admin").innerHTML = numberAdmin;
   }
 }
